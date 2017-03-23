@@ -1,6 +1,6 @@
 (ns facebook-example.repl
   (:gen-class)
-  (:require [facebook-example.bot :as bot]
+  (:require [facebook-example.bot :refer [handle-message]]
             [clj-time.core :as time]
             [clj-time.coerce :as c]
             [clojure.string :as s]
@@ -53,14 +53,11 @@
       (if (= (get-in response [:attachment :type]) "image") (beautiful-image response))
       (if (= (get-in response [:attachment :type]) "template") (beautiful-template response))))
 
-(defn forward [message on-message on-postback on-attachments]
+(defn forward [message message-handler]
   (if (s/starts-with? message "^")
-      (on-postback (mock-postback (subs message 1)))
+      (message-handler (mock-postback (subs message 1)))
 
-      (on-message (mock-text message))))
-
-(defn handle-message [message on-message on-postback on-attachments]
-  (doall (map beautyprint (forward message on-message on-postback on-attachments))))
+      (message-handler (mock-text message))))
 
 (defn -main []
   (while true
@@ -68,5 +65,5 @@
       (print (get indicators :send))
       (flush)
       (try
-        (handle-message (read-line) bot/on-message bot/on-postback bot/on-attachments)
+        (doall (map beautyprint (forward (read-line) handle-message)))
         (catch Exception e (do (println "\nBye!") (System/exit 0)))))))
